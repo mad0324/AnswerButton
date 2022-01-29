@@ -3,13 +3,10 @@ package edu.vt.cs.cs5254.answerbutton
 import Answer
 import android.content.res.ColorStateList
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
-import android.widget.LinearLayout
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.children
-import androidx.core.view.get
 import edu.vt.cs.cs5254.answerbutton.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -56,10 +53,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.questionTextView.setText(R.string.australia_question)
 
-        // TODO Use pairs and a zipped list instead of 0..3
-        for (index in 0..3) {
-            answerButtonList[index].setText(answerList[index].textResId)
-        }
+        answerList.zip(answerButtonList)
+            .forEach { (answer, button) -> button.setText(answer.textResId) }
 
         binding.disableButton.setText(R.string.disable_button)
         binding.resetButton.setText(R.string.reset_button)
@@ -68,12 +63,13 @@ class MainActivity : AppCompatActivity() {
         // Add listeners to buttons
         // ------------------------------------------------------
 
-        // TODO Use pairs and a zipped list instead of 0..3
-        for (index in 0..3) {
-            answerButtonList[index].setOnClickListener {
-                processAnswerButtonClick(answerList[index])
+        answerList.zip(answerButtonList)
+            .forEach { (answer, button) ->
+                button.setOnClickListener {
+                    processAnswerButtonClick(answer)
+                }
             }
-        }
+
         binding.disableButton.setOnClickListener {
             processDisableButtonClick()
         }
@@ -91,10 +87,9 @@ class MainActivity : AppCompatActivity() {
     private fun processAnswerButtonClick(clickedAnswer: Answer) {
 
         val origIsSelected = clickedAnswer.isSelected
-        // TODO Use forEach instead of for loop
-        for (answer in answerList) {
-            answer.isSelected = false
-        }
+
+        answerList.forEach { it.isSelected = false }
+
         clickedAnswer.isSelected = !origIsSelected
 
         refreshView()
@@ -102,28 +97,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun processDisableButtonClick() {
 
-        // TODO Use list functions (filter/take/forEach) instead of for loop
-        var count = 0
-        for (answer in answerList) {
-            if (!answer.isCorrect) {
-                answer.isEnabled = false
-                answer.isSelected = false // deselect when answer is disabled
-                count++
-                if (count == 2) {
-                    break
-                }
+        answerList
+            .filter { !it.isCorrect }
+            .take(2)
+            .forEach {
+                it.isEnabled = false
+                it.isSelected = false // deselect when answer is disabled
             }
-        }
 
         refreshView()
     }
 
     private fun processResetButtonClick() {
 
-        // TODO use forEach instead of for loop
-        for (answer in answerList) {
-            answer.isEnabled = true
-            answer.isSelected = false
+        answerList.forEach {
+            it.isEnabled = true
+            it.isSelected = false
         }
 
         refreshView()
@@ -133,23 +122,21 @@ class MainActivity : AppCompatActivity() {
 
         binding.disableButton.isEnabled = true
 
-        // TODO Use pairs and a zipped list instead of 0..3
-        for (index in 0..3) {
-            val answer = answerList[index]
-            val button = answerButtonList[index]
-            button.isEnabled = answer.isEnabled
-            button.isSelected = answer.isSelected
-            if (answer.isSelected) {
-                setButtonColor(button, SELECTED_BUTTON_COLOR)
-            } else {
-                setButtonColor(button, DEFAULT_BUTTON_COLOR)
+        answerList.zip(answerButtonList)
+            .forEach { (answer, button) ->
+                button.isEnabled = answer.isEnabled
+                button.isSelected = answer.isSelected
+                setButtonColor(
+                    button,
+                    if (answer.isSelected) SELECTED_BUTTON_COLOR else DEFAULT_BUTTON_COLOR
+                )
+                if (!answer.isEnabled) {
+                    button.alpha = .5f
+                }
             }
-            if (!answer.isEnabled) {
-                button.alpha = .5f
-                // TODO (optional) Handle disable button outside of main loop (use any)
-                binding.disableButton.isEnabled = false // disable if any answers are disabled
-            }
-        }
+        // disable if any answers are disabled
+        binding.disableButton.isEnabled = !answerList.filter { !it.isEnabled }.any()
+
     }
 
     private fun setButtonColor(button: Button, colorString: String) {
